@@ -88,18 +88,19 @@ void Renderer::Render(Scene* pScene) const
 	Ray ray{ pScene->GetCamera().origin, {} };
 	HitRecord hitRecord{};
 	ColorRGB finalColor{  };
+	const float fov{ tanf(dae::TO_RADIANS * pScene->GetCamera().fovAngle/2.0f) };
 
 
 	for (int px{}; px < m_Width; ++px)
 	{
 			float pxc = float(px) + .5f;
-			x = (2 * pxc / float(m_Width)-1) * ar;
+			x = (2 * pxc / float(m_Width)-1) * ar * fov;
 
 		for (int py{}; py < m_Height; ++py)
 		{
 			// create ray direction vector
 			float pyc = float(py) + .5f;
-			y = 1 - 2 * pyc / float(m_Height);
+			y = (1 - 2 * pyc / float(m_Height)) * fov;
 			ray.direction.x = x;
 			ray.direction.y = y;
 			ray.direction.z = 1.0f;

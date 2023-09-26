@@ -105,8 +105,7 @@ namespace dae {
 	Matrix Matrix::CreateTranslation(float x, float y, float z)
 	{
 		//todo W2
-		assert(false && "Not Implemented Yet");
-		return {};
+		return { Vector3::UnitX, Vector3::UnitY, Vector3::UnitZ, {x, y, z} };
 	}
 
 	Matrix Matrix::CreateTranslation(const Vector3& t)
@@ -117,7 +116,10 @@ namespace dae {
 	Matrix Matrix::CreateRotationX(float pitch)
 	{
 		//todo W2
-		assert(false && "Not Implemented Yet");
+		const float cos{ cosf(pitch) };
+		const float cos{ sinf(pitch) };
+
+
 		return {};
 	}
 
