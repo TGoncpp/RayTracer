@@ -85,7 +85,7 @@ void Renderer::Render(Scene* pScene) const
 
 	float x{}, y{};
 	float ar = float(m_Width) / float(m_Height);
-	Ray ray{  };
+	Ray ray{ pScene->GetCamera().origin, {} };
 	HitRecord hitRecord{};
 	ColorRGB finalColor{  };
 
