@@ -30,33 +30,8 @@ namespace dae {
 
 	void dae::Scene::GetClosestHit(const Ray& ray, HitRecord& closestHit) const
 	{
-		//todo W1
 		float t{ 0.f };
 		int currentMatInd{ -1 };
-
-		//planes
-		for (int index{}; index < m_PlaneGeometries.size(); ++index)
-		{
-			//if previous sphere has a hit
-			if (t > ray.min)
-			{
-				currentMatInd = closestHit.materialIndex;
-				GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit);
-				
-				if (closestHit.t < t && closestHit.t > ray.min)
-				{
-					t = closestHit.t;
-				}
-				else
-				{
-					closestHit.materialIndex = currentMatInd;
-				}
-			}
-
-			//if no hit has been found yet
-			else if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit))
-				t = closestHit.t;
-		}
 
 		//Spheres
 		for (int index{}; index < m_SphereGeometries.size(); ++index)
@@ -78,17 +53,56 @@ namespace dae {
 			}
 
 			//if no hit has been found yet
-			else if(GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, closestHit))
+			else if (GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, closestHit))
 				t = closestHit.t;
 		}
+
+		//planes
+		for (int index{}; index < m_PlaneGeometries.size(); ++index)
+		{
+			//if previous plane has a hit
+			if (t > ray.min)
+			{
+				currentMatInd = closestHit.materialIndex;
+				GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit);
+				
+				if (closestHit.t < t && closestHit.t > ray.min)
+				{
+					t = closestHit.t;
+				}
+				else
+				{
+					closestHit.materialIndex = currentMatInd;
+				}
+			}
+
+			//if no hit has been found yet
+			else if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit))
+				t = closestHit.t;
+		}
+
+		
 
 	}
 
 	bool Scene::DoesHit(const Ray& ray) const
 	{
-		//todo W3
-		assert(false && "No Implemented Yet!");
+		HitRecord hit;
+		//Spheres
+		for (int index{}; index < m_SphereGeometries.size(); ++index)
+		{
+			if (GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, hit))
+				return true;
+		}
 		return false;
+		//planes
+		for (int index{}; index < m_PlaneGeometries.size(); ++index)
+		{
+			if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, hit))
+				return true;
+		}
+
+		
 	}
 
 #pragma region Scene Helpers
@@ -196,6 +210,8 @@ namespace dae {
 	{
 		m_Camera.origin = { 0.f, 3.f, -9.f };
 		m_Camera.fovAngle = 45.f;
+		m_Camera.forward = { 0.266f, -0.453f, 0.860f };
+		m_Camera.cameraToWorld = m_Camera.CalculateCameraToWorld();
 
 		constexpr unsigned char matId_Solid_Red = 0;
 		const unsigned char matId_Solid_Blue = AddMaterial(new Material_SolidColor{ colors::Blue });

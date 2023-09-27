@@ -23,74 +23,18 @@ Renderer::Renderer(SDL_Window * pWindow) :
 
 void Renderer::Render(Scene* pScene) const
 {
-	Camera& camera = pScene->GetCamera();
+	Camera& camera  = pScene->GetCamera();
 	auto& materials = pScene->GetMaterials();
-	auto& lights = pScene->GetLights();
-
-
-	//Vector3 direction{ 0,0,1 };
-	//Ray ray{ {0,0,0}, direction };
-	//HitRecord hitRecord{};
-	//float ar = static_cast<float>(m_Width) / static_cast<float>(m_Height);
-
-	//Sphere sphere;
-	////sphere.origin = { m_Width / 2.0f, m_Height / 2.0f, 0.0f };
-	//sphere.origin = { 0.0f, 0.0f, 100.0f };
-	//sphere.radius = 50.0f;
-	//ColorRGB finalColor{  };
-
-	//for (int px{}; px < m_Width; ++px)
-	//{
-
-	//	for (int py{}; py < m_Height; ++py)
-	//	{
-
-	//		float pxc{ (float)px + 0.5f };
-	//		direction.x = ( (2 * pxc) / static_cast<float>(m_Width) - 1 ) * ar;
-
-	//		direction.y = 1 - ((2 * (static_cast<float>(py) + 0.5f)) / static_cast<float>(m_Height) );
-
-	//		direction.Normalize();
-	//		ray.direction = direction;
-
-	//		if (GeometryUtils::HitTest_Sphere(sphere, ray, hitRecord))
-	//		{
-	//			const float scale_t{ (hitRecord.t - 50.0f) / 40.0f };
-	//			ColorRGB Color{ scale_t,scale_t, scale_t };
-	//			finalColor = Color;
-	//		}
-
-	//		else
-	//		{
-	//			ColorRGB Color{ 0,0, 0 };
-	//			finalColor = Color;
-	//		}
-
-
-	//		//Update Color in Buffer
-	//		finalColor.MaxToOne();
-
-	//		m_pBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBuffer->format,
-	//			static_cast<uint8_t>(finalColor.r * 255),
-	//			static_cast<uint8_t>(finalColor.g * 255),
-	//			static_cast<uint8_t>(finalColor.b * 255));
-	//	}
-	//}
-
-	////@END
-	////Update SDL Surface
-	//SDL_UpdateWindowSurface(m_pWindow);
-
-
-
+	auto& lights    = pScene->GetLights();
+	
 	float x{}, y{};
-	float ar = float(m_Width) / float(m_Height);
-	Ray ray{ pScene->GetCamera().origin, {} };
+	const float 
+		ar{ float(m_Width) / float(m_Height) },
+		fov{ tanf(dae::TO_RADIANS * camera.fovAngle/2.0f) };
+	Ray ray{ camera.origin, {} };
 	HitRecord hitRecord{};
-	ColorRGB finalColor{  };
-	const float fov{ tanf(dae::TO_RADIANS * pScene->GetCamera().fovAngle/2.0f) };
-
-
+	ColorRGB finalColor{};
+	
 	for (int px{}; px < m_Width; ++px)
 	{
 			float pxc = float(px) + .5f;
@@ -105,6 +49,7 @@ void Renderer::Render(Scene* pScene) const
 			ray.direction.y = y;
 			ray.direction.z = 1.0f;
 			ray.direction.Normalize();
+			ray.direction = camera.cameraToWorld.TransformVector(ray.direction).Normalized();
 
 			//raytrace scene
 			pScene->GetClosestHit(ray, hitRecord);
@@ -113,6 +58,15 @@ void Renderer::Render(Scene* pScene) const
 			if (hitRecord.didHit)
 			{
 				finalColor = materials[hitRecord.materialIndex]->Shade();
+				for (int i{}; i < lights.size(); ++i)
+				{
+					if (pScene->DoesHit({
+						hitRecord.origin,														  	  //origin
+						(LightUtils::GetDirectionToLight(lights[i], hitRecord.origin)).Normalized() })) // direction
+					{
+						finalColor *= 0.5f;
+					}
+				}
 				hitRecord.didHit = false;
 			}
 			else
@@ -120,6 +74,7 @@ void Renderer::Render(Scene* pScene) const
 				finalColor = {};
 			}
 
+#pragma region comment
 			/////////////////////////////////////////////////////////////////////////////////////////
 			////check for correct raydirection 
 			//ColorRGB finalColor{ ray.direction.x ,ray.direction.y, ray.direction.z };
@@ -142,6 +97,7 @@ void Renderer::Render(Scene* pScene) const
 
 			//////////////////////////////////////////////////////////////////////////////////////////
 			//Update Color in Buffer
+#pragma endregion 
 			finalColor.MaxToOne();
 
 			m_pBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBuffer->format,
