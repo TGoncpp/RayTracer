@@ -37,7 +37,7 @@ namespace dae {
 		for (int index{}; index < m_SphereGeometries.size(); ++index)
 		{
 			//if previous sphere has a hit
-			if (t > ray.min)
+			if (abs(t) > ray.min)
 			{
 				currentMatInd = closestHit.materialIndex;
 				GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, closestHit);
@@ -88,19 +88,31 @@ namespace dae {
 	bool Scene::DoesHit(const Ray& ray) const
 	{
 		HitRecord hit;
-		//Spheres
-		for (int index{}; index < m_SphereGeometries.size(); ++index)
+		for (int i{}; i < m_Lights.size(); ++i)
 		{
-			if (GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, hit))
-				return true;
+			float
+				tMax = (m_Lights[i].origin - ray.origin).Magnitude(),
+				tMin = 0.0001f;
+
+			//Spheres
+			for (int index{}; index < m_SphereGeometries.size(); ++index)
+			{
+
+				if (GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, hit)
+					&& hit.t < tMax && hit.t > tMin)
+					return true;
+			}
+
+			//planes
+			for (int index{}; index < m_PlaneGeometries.size(); ++index)
+			{
+
+				if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, hit)
+					&& hit.t < tMax && hit.t > tMin)
+					return true;
+			}
 		}
 		return false;
-		//planes
-		for (int index{}; index < m_PlaneGeometries.size(); ++index)
-		{
-			if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, hit))
-				return true;
-		}
 
 		
 	}
@@ -168,7 +180,6 @@ namespace dae {
 		return static_cast<unsigned char>(m_Materials.size() - 1);
 	}
 #pragma endregion
-#pragma endregion
 
 #pragma region SCENE W1
 	void Scene_W1::Initialize()
@@ -210,12 +221,11 @@ namespace dae {
 	{
 		m_Camera.origin = { 0.f, 3.f, -9.f };
 		m_Camera.fovAngle = 45.f;
-		m_Camera.forward = { 0.266f, -0.453f, 0.860f };
+		//m_Camera.forward = { 0.266f, -0.453f, 0.860f };
 		m_Camera.cameraToWorld = m_Camera.CalculateCameraToWorld();
 
 		constexpr unsigned char matId_Solid_Red = 0;
 		const unsigned char matId_Solid_Blue = AddMaterial(new Material_SolidColor{ colors::Blue });
-
 		const unsigned char matId_Solid_Yellow = AddMaterial(new Material_SolidColor{ colors::Yellow });
 		const unsigned char matId_Solid_Green = AddMaterial(new Material_SolidColor{ colors::Green });
 		const unsigned char matId_Solid_Magenta = AddMaterial(new Material_SolidColor{ colors::Magenta });

@@ -12,6 +12,7 @@ namespace dae
 		//SPHERE HIT-TESTS
 		inline bool HitTest_Sphere(const Sphere& sphere, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{		
+		
 			//const float A{ Vector3::Dot(ray.direction, ray.direction) };//always 1.0f
 			const float B{ 2.0f * Vector3::Dot(ray.origin - sphere.origin, ray.direction) };
 			const float C{ Vector3::Dot(ray.origin - sphere.origin, ray.origin - sphere.origin) - sphere.radius * sphere.radius };
@@ -22,24 +23,38 @@ namespace dae
 
 			float t{ (-B - sqrtf(Discrimenant)) / (2.0f /** A*/) };
 
-			if (abs(t) >= ray.max ||
-				abs(t) < ray.min ||
+			if (t >= ray.max ||
+				t < ray.min ||
 				ignoreHitRecord )
 				return false;
 
-			else if (t < 0.f)
+			//else if (t < 0.f)
+			//{
+			//	t = (-B + sqrtf(Discrimenant)) / (2.0f /** A*/);
+			//}
+
+			
+			//fill in hit record on first hit
+			if (!hitRecord.didHit )
 			{
-				t = (-B + sqrtf(Discrimenant)) / (2.0f /** A*/);
+				hitRecord.t = t;
+				hitRecord.origin = ray.origin + ray.direction * t;
+				hitRecord.materialIndex = sphere.materialIndex;
+				hitRecord.normal = (hitRecord.origin - sphere.origin) / sphere.radius;
+				hitRecord.didHit = true;
+				return true;	
 			}
-
-			hitRecord.t				= t;
-			hitRecord.didHit		= true;
-			hitRecord.origin		= ray.origin + ray.direction * t ;
-			hitRecord.materialIndex = sphere.materialIndex;
-			hitRecord.normal		= (hitRecord.origin - sphere.origin) / sphere.radius;
-
-			return true;	
-				
+			//if hitrecord was already filled, check new t-value
+			else if (hitRecord.didHit && t < hitRecord.t)
+			{
+				hitRecord.t = t;
+				hitRecord.origin = ray.origin + ray.direction * t;
+				hitRecord.materialIndex = sphere.materialIndex;
+				hitRecord.normal = (hitRecord.origin - sphere.origin) / sphere.radius;
+				hitRecord.didHit = true;
+				return true;
+			}
+			return false;
 		}
 
 		inline bool HitTest_Sphere(const Sphere& sphere, const Ray& ray)
@@ -52,18 +67,30 @@ namespace dae
 		//PLANE HIT-TESTS
 		inline bool HitTest_Plane(const Plane& plane, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			hitRecord.t = Vector3::Dot((plane.origin - ray.origin), plane.normal) / Vector3::Dot(ray.direction, plane.normal);
-			if (hitRecord.t < ray.max && 
-				hitRecord.t > ray.min &&
-				!ignoreHitRecord)
+			float t = Vector3::Dot((plane.origin - ray.origin), plane.normal) / Vector3::Dot(ray.direction, plane.normal);
+			
+			//check first hit
+			if (!hitRecord.didHit && t < ray.max && t > ray.min  )
 			{
-				hitRecord.origin		= ray.origin + ray.direction * hitRecord.t ;
-				hitRecord.didHit		= true;
+				hitRecord.t             = t;
+				hitRecord.origin        = ray.origin + ray.direction * hitRecord.t;
 				hitRecord.materialIndex = plane.materialIndex;
-				//hitRecord.normal = ;
+				hitRecord.normal		= plane.normal;
+				hitRecord.didHit        = true;
 				return true;
-			}
 
+			}
+			//check t for smaller value when was already hit
+			else if (hitRecord.didHit && t < hitRecord.t && t < ray.max && t > ray.min)
+			{
+				hitRecord.t = t;
+				hitRecord.origin = ray.origin + ray.direction * hitRecord.t;
+				hitRecord.materialIndex = plane.materialIndex;
+				hitRecord.normal = plane.normal;
+				hitRecord.didHit = true;
+				return true;
+
+			}
 			return false;
 		}
 

@@ -81,6 +81,7 @@ namespace dae
 #pragma region MouseInput
 
 			//Mouse Input
+			//move forward/sideways
 			int mouseX{}, mouseY{};
 			const uint32_t mouseState = SDL_GetRelativeMouseState(&mouseX, &mouseY);
 

@@ -35,6 +35,8 @@ void Renderer::Render(Scene* pScene) const
 	HitRecord hitRecord{};
 	ColorRGB finalColor{};
 	
+	// create ray direction vector
+	/////////////////////////////////////////
 	for (int px{}; px < m_Width; ++px)
 	{
 			float pxc = float(px) + .5f;
@@ -42,7 +44,6 @@ void Renderer::Render(Scene* pScene) const
 
 		for (int py{}; py < m_Height; ++py)
 		{
-			// create ray direction vector
 			float pyc = float(py) + .5f;
 			y = (1 - 2 * pyc / float(m_Height)) * fov;
 			ray.direction.x = x;
@@ -55,18 +56,20 @@ void Renderer::Render(Scene* pScene) const
 			pScene->GetClosestHit(ray, hitRecord);
 
 			//render
+			///////////////////////////////////////////////
 			if (hitRecord.didHit)
 			{
+				Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[0], hitRecord.origin) };
 				finalColor = materials[hitRecord.materialIndex]->Shade();
-				for (int i{}; i < lights.size(); ++i)
-				{
+				
 					if (pScene->DoesHit({
-						hitRecord.origin,														  	  //origin
-						(LightUtils::GetDirectionToLight(lights[i], hitRecord.origin)).Normalized() })) // direction
+						hitRecord.origin/* - hitRecord.normal * 1.1f*/ ,														   	    //origin
+						lightDir.Normalized() })) // direction
 					{
-						finalColor *= 0.5f;
+					
+							finalColor *= 0.5f;
 					}
-				}
+				
 				hitRecord.didHit = false;
 			}
 			else
