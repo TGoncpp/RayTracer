@@ -28,60 +28,82 @@ namespace dae {
 		m_Materials.clear();
 	}
 
+#pragma region bad attempt getclossetHit
+	//void dae::Scene::GetClosestHit(const Ray& ray, HitRecord& closestHit) const
+	//{
+	//	float t{ 0.f };
+	//	int currentMatInd{ -1 };
+
+	//	//Spheres
+	//	for (int index{}; index < m_SphereGeometries.size(); ++index)
+	//	{
+	//		//if previous sphere has a hit
+	//		if (abs(t) > ray.min)
+	//		{
+	//			currentMatInd = closestHit.materialIndex;
+	//			GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, closestHit);
+
+	//			if (closestHit.t < t && closestHit.t > ray.min)
+	//			{
+	//				t = closestHit.t;
+	//			}
+	//			else
+	//			{
+	//				closestHit.materialIndex = currentMatInd;
+	//			}
+	//		}
+
+	//		//if no hit has been found yet
+	//		else if (GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, closestHit))
+	//			t = closestHit.t;
+	//	}
+
+	//	//planes
+	//	for (int index{}; index < m_PlaneGeometries.size(); ++index)
+	//	{
+	//		//if previous plane has a hit
+	//		if (t > ray.min)
+	//		{
+	//			currentMatInd = closestHit.materialIndex;
+	//			GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit);
+	//			
+	//			if (closestHit.t < t && closestHit.t > ray.min)
+	//			{
+	//				t = closestHit.t;
+	//			}
+	//			else
+	//			{
+	//				closestHit.materialIndex = currentMatInd;
+	//			}
+	//		}
+
+	//		//if no hit has been found yet
+	//		else if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit))
+	//			t = closestHit.t;
+	//	}
+
+	//	
+
+	//}
+	//
+#pragma endregion bad attempt getclossetHit
+
 	void dae::Scene::GetClosestHit(const Ray& ray, HitRecord& closestHit) const
 	{
-		float t{ 0.f };
-		int currentMatInd{ -1 };
-
+		
 		//Spheres
 		for (int index{}; index < m_SphereGeometries.size(); ++index)
 		{
-			//if previous sphere has a hit
-			if (abs(t) > ray.min)
-			{
-				currentMatInd = closestHit.materialIndex;
-				GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, closestHit);
-
-				if (closestHit.t < t && closestHit.t > ray.min)
-				{
-					t = closestHit.t;
-				}
-				else
-				{
-					closestHit.materialIndex = currentMatInd;
-				}
-			}
-
-			//if no hit has been found yet
-			else if (GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, closestHit))
-				t = closestHit.t;
+			GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, closestHit);		
 		}
 
 		//planes
 		for (int index{}; index < m_PlaneGeometries.size(); ++index)
 		{
-			//if previous plane has a hit
-			if (t > ray.min)
-			{
-				currentMatInd = closestHit.materialIndex;
-				GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit);
+			
+			GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit);
 				
-				if (closestHit.t < t && closestHit.t > ray.min)
-				{
-					t = closestHit.t;
-				}
-				else
-				{
-					closestHit.materialIndex = currentMatInd;
-				}
-			}
-
-			//if no hit has been found yet
-			else if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit))
-				t = closestHit.t;
 		}
-
-		
 
 	}
 
@@ -94,11 +116,13 @@ namespace dae {
 				tMax = (m_Lights[i].origin - ray.origin).Magnitude(),
 				tMin = 0.0001f;
 
+			Vector3 lightDir{ LightUtils::GetDirectionToLight(m_Lights[i], ray.origin) };
+			Ray currentLightRay{ ray.origin, lightDir.Normalized()};
+
 			//Spheres
 			for (int index{}; index < m_SphereGeometries.size(); ++index)
 			{
-
-				if (GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], ray, hit)
+				if (GeometryUtils::HitTest_Sphere(m_SphereGeometries[index], currentLightRay, hit)
 					&& hit.t < tMax && hit.t > tMin)
 					return true;
 			}
@@ -107,7 +131,7 @@ namespace dae {
 			for (int index{}; index < m_PlaneGeometries.size(); ++index)
 			{
 
-				if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, hit)
+				if (GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], currentLightRay, hit)
 					&& hit.t < tMax && hit.t > tMin)
 					return true;
 			}
@@ -246,6 +270,7 @@ namespace dae {
 		AddSphere({ 1.75f , 3.f, 0.f }, 0.75f, matId_Solid_Blue);
 
 		AddPointLight({ 0.f, 5.f, -5.f }, 70.f, colors::White);
+		//AddPointLight({ 0.f, 5.f, 0.f }, 70.f, colors::White);
 	}
 
 #pragma endregion SCENE W2

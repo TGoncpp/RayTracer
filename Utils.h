@@ -13,27 +13,22 @@ namespace dae
 		inline bool HitTest_Sphere(const Sphere& sphere, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{		
 		
-			//const float A{ Vector3::Dot(ray.direction, ray.direction) };//always 1.0f
+			//const float A{ Vector3::Dot(ray.direction, ray.direction) };//always 1.0f!!!!!!!!!!!!!!!
 			const float B{ 2.0f * Vector3::Dot(ray.origin - sphere.origin, ray.direction) };
 			const float C{ Vector3::Dot(ray.origin - sphere.origin, ray.origin - sphere.origin) - sphere.radius * sphere.radius };
-
 			const float Discrimenant{ (B * B - 4.0f /** A*/ * C) };
-			if (Discrimenant < 0)
+
+			if (Discrimenant < 0 || ignoreHitRecord)
 				return false;
 
 			float t{ (-B - sqrtf(Discrimenant)) / (2.0f /** A*/) };
 
-			if (t >= ray.max ||
-				t < ray.min ||
-				ignoreHitRecord )
+			if (t < 0.f)
+				t = (-B + sqrtf(Discrimenant)) / (2.0f /** A*/);
+
+			if (t >= ray.max || t < ray.min  )
 				return false;
 
-			//else if (t < 0.f)
-			//{
-			//	t = (-B + sqrtf(Discrimenant)) / (2.0f /** A*/);
-			//}
-
-			
 			//fill in hit record on first hit
 			if (!hitRecord.didHit )
 			{
@@ -44,6 +39,7 @@ namespace dae
 				hitRecord.didHit = true;
 				return true;	
 			}
+
 			//if hitrecord was already filled, check new t-value
 			else if (hitRecord.didHit && t < hitRecord.t)
 			{

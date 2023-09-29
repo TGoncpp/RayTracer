@@ -59,14 +59,10 @@ void Renderer::Render(Scene* pScene) const
 			///////////////////////////////////////////////
 			if (hitRecord.didHit)
 			{
-				Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[0], hitRecord.origin) };
 				finalColor = materials[hitRecord.materialIndex]->Shade();
 				
-					if (pScene->DoesHit({
-						hitRecord.origin/* - hitRecord.normal * 1.1f*/ ,														   	    //origin
-						lightDir.Normalized() })) // direction
+				if (pScene->DoesHit({hitRecord.origin + hitRecord.normal * 0.0001f ,{ } })) 
 					{
-					
 							finalColor *= 0.5f;
 					}
 				
