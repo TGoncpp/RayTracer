@@ -54,10 +54,13 @@ namespace dae
 			float 
 				scrollSpeed{ 7.f },
 				swipeSpeed{ 0.25f },
-				rotationSpeed{ 0.025f };
+				rotationSpeed{ 0.035f };
 
 			//Keyboard Input
+			//*********************************
 #pragma region KeyboardInput
+			//camera movement
+
 			const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
 			if (pKeyboardState[SDL_SCANCODE_W])
 			{
@@ -75,6 +78,8 @@ namespace dae
 			{
 				origin -= right * scrollSpeed * deltaTime;
 			}
+
+			
 
 #pragma endregion
 

@@ -9,6 +9,7 @@
 #include "Material.h"
 #include "Scene.h"
 #include "Utils.h"
+#include <iostream>
 
 using namespace dae;
 
@@ -23,6 +24,7 @@ Renderer::Renderer(SDL_Window * pWindow) :
 
 void Renderer::Render(Scene* pScene) const
 {
+
 	Camera& camera  = pScene->GetCamera();
 	auto& materials = pScene->GetMaterials();
 	auto& lights    = pScene->GetLights();
@@ -60,12 +62,50 @@ void Renderer::Render(Scene* pScene) const
 			if (hitRecord.didHit)
 			{
 				finalColor = materials[hitRecord.materialIndex]->Shade();
-				
-				if (pScene->DoesHit({hitRecord.origin + hitRecord.normal * 0.0001f ,{ } })) 
+
+				//Check lighting
+
+				for (int i{}; i < lights.size(); ++i)
+				{
+					Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[i], hitRecord.origin) };
+					Vector3 lightDirNrm{ lightDir.Normalized()};
+					Ray LightRay{ {hitRecord.origin + hitRecord.normal * 0.001f} ,lightDirNrm };
+					LightRay.max = (lights[i].origin - hitRecord.origin).Magnitude();
+					LightRay.min = 0.0001f;
+
+					//if shadows enabled ,put shadow
+					if (m_ShadowEnabled && pScene->DoesHit(LightRay ))
 					{
-							finalColor *= 0.5f;
+						finalColor *= 0.5f;
 					}
-				
+
+					else
+					{
+						//light up the not shadowed part
+						switch(m_LightingMode)
+						{
+						case LightingMode::ObservedArea:
+							finalColor.r += (CalculateObservedArea(lightDir, hitRecord.normal));
+							finalColor.g += (CalculateObservedArea(lightDir, hitRecord.normal));
+							finalColor.b += (CalculateObservedArea(lightDir, hitRecord.normal));
+								break;
+						case LightingMode::Radiance:
+							finalColor += LightUtils::GetRadiance(lights[i], hitRecord.origin);
+							break;
+						case LightingMode::BRDF:
+							materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction);
+							break;
+						case LightingMode::Combined:
+							finalColor +=
+								LightUtils::GetRadiance(lights[i], hitRecord.origin) *
+								materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction) *
+								CalculateObservedArea(lightDir, hitRecord.normal);							
+							break;
+						default:
+							break;
+						}
+					}
+				}
 				hitRecord.didHit = false;
 			}
 			else
@@ -117,3 +157,42 @@ bool Renderer::SaveBufferToImage() const
 {
 	return SDL_SaveBMP(m_pBuffer, "RayTracing_Buffer.bmp");
 }
+
+void dae::Renderer::CyclelightingMode()
+{
+	m_LightingMode = static_cast<LightingMode>((int(m_LightingMode) + 1) % 4);
+	std::cout << int(m_LightingMode) << "\n";
+}
+
+
+void Renderer::Input()
+{
+const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
+	if (pKeyboardState[SDL_SCANCODE_F2])
+	{
+		ToggleShadows();
+		//std::cout << "F2\n";
+	}
+	if (pKeyboardState[SDL_SCANCODE_F3])
+	{
+		CyclelightingMode();
+		//std::cout << "F3\n";
+	}
+}
+
+float Renderer::CalculateBRDF()const
+{
+	return 0.f;
+}
+
+float Renderer::CalculateRadiance()const
+{
+	return 0.f;
+}
+
+//cosine Law
+float Renderer::CalculateObservedArea(const Vector3& light, const Vector3& normal)const
+{
+	return Vector3::Dot(light, normal) / light.Magnitude();
+}
+
