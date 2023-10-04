@@ -58,9 +58,7 @@ namespace dae
 			m_DiffuseColor(diffuseColor), m_DiffuseReflectance(diffuseReflectance){}
 
 		ColorRGB Shade(const HitRecord& hitRecord = {}, const Vector3& l = {}, const Vector3& v = {}) override
-		{
-			//todo: W3
-			
+		{			
 			return {BRDF::Lambert(m_DiffuseReflectance, m_DiffuseColor )};
 		}
 
@@ -85,7 +83,9 @@ namespace dae
 		ColorRGB Shade(const HitRecord& hitRecord = {}, const Vector3& l = {}, const Vector3& v = {}) override
 		{
 			//todo: W3
-			return {};
+			
+			return { BRDF::Lambert(m_DiffuseReflectance, m_DiffuseColor) 
+				   + BRDF::Phong(m_SpecularReflectance, m_PhongExponent, l, v, hitRecord.normal)};
 		}
 
 	private:

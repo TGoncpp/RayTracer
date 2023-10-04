@@ -49,8 +49,6 @@ namespace dae
 		bool m_ShadowEnabled{ true };
 		LightingMode m_LightingMode{ LightingMode::Radiance };
 
-		float CalculateBRDF()const;
-		float CalculateRadiance()const;
 		float CalculateObservedArea(const Vector3& light, const Vector3& normal)const;
 	};
 }

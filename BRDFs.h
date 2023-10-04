@@ -34,8 +34,9 @@ namespace dae
 		 */
 		static ColorRGB Phong(float ks, float exp, const Vector3& l, const Vector3& v, const Vector3& n)
 		{
-			//todo: W3
-			return {};
+			Vector3 reflect{ Vector3::Reflect(l, n).Normalized()};
+			float cosAlp{ (Vector3::Dot(reflect, v) > 0.f)? Vector3::Dot(reflect, v)  : 0.f };
+			return {ks * powf(cosAlp , exp)};
 		}
 
 		/**

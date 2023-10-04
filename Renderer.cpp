@@ -35,7 +35,7 @@ void Renderer::Render(Scene* pScene) const
 		fov{ tanf(dae::TO_RADIANS * camera.fovAngle/2.0f) };
 	Ray ray{ camera.origin, {} };
 	HitRecord hitRecord{};
-	ColorRGB finalColor{};
+	
 	
 	// create ray direction vector
 	/////////////////////////////////////////
@@ -46,6 +46,7 @@ void Renderer::Render(Scene* pScene) const
 
 		for (int py{}; py < m_Height; ++py)
 		{
+			ColorRGB finalColor{};
 			float pyc = float(py) + .5f;
 			y = (1 - 2 * pyc / float(m_Height)) * fov;
 			ray.direction.x = x;
@@ -57,14 +58,10 @@ void Renderer::Render(Scene* pScene) const
 			//raytrace scene
 			pScene->GetClosestHit(ray, hitRecord);
 
-			//render
-			///////////////////////////////////////////////
+			//Check what the camera is seeing
 			if (hitRecord.didHit)
 			{
-				finalColor = materials[hitRecord.materialIndex]->Shade();
-
-				//Check lighting
-
+				//Check lighting on the location spotted by camera
 				for (int i{}; i < lights.size(); ++i)
 				{
 					Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[i], hitRecord.origin) };
@@ -74,40 +71,45 @@ void Renderer::Render(Scene* pScene) const
 					LightRay.min = 0.0001f;
 
 					//if shadows enabled ,put shadow
-					if (m_ShadowEnabled && pScene->DoesHit(LightRay ))
+					if (m_ShadowEnabled && pScene->DoesHit(LightRay) )
 					{
-						finalColor *= 0.5f;
+						finalColor += {};
 					}
-
 					else
 					{
-						//light up the not shadowed part
-						switch(m_LightingMode)
+						switch (m_LightingMode)
 						{
 						case LightingMode::ObservedArea:
 							finalColor.r += (CalculateObservedArea(lightDir, hitRecord.normal));
 							finalColor.g += (CalculateObservedArea(lightDir, hitRecord.normal));
 							finalColor.b += (CalculateObservedArea(lightDir, hitRecord.normal));
-								break;
+							break;
+
 						case LightingMode::Radiance:
 							finalColor += LightUtils::GetRadiance(lights[i], hitRecord.origin);
 							break;
+
 						case LightingMode::BRDF:
-							materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction);
+							finalColor += materials[hitRecord.materialIndex]->Shade(hitRecord, -lightDirNrm, -ray.direction);
 							break;
+
 						case LightingMode::Combined:
 							finalColor +=
 								LightUtils::GetRadiance(lights[i], hitRecord.origin) *
-								materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction) *
-								CalculateObservedArea(lightDir, hitRecord.normal);							
+								materials[hitRecord.materialIndex]->Shade(hitRecord, -lightDirNrm, -ray.direction) *
+								CalculateObservedArea(lightDir, hitRecord.normal);
 							break;
 						default:
 							break;
 						}
+
 					}
+					
 				}
+				//hitrecord set false to continue search for hits with smaller t-value (closer objects)
 				hitRecord.didHit = false;
 			}
+			//if no hit on an object in world --> finalcolor = 0
 			else
 			{
 				finalColor = {};
@@ -138,7 +140,7 @@ void Renderer::Render(Scene* pScene) const
 			//Update Color in Buffer
 #pragma endregion 
 			finalColor.MaxToOne();
-
+			
 			m_pBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBuffer->format,
 				static_cast<uint8_t>(finalColor.r * 255),
 				static_cast<uint8_t>(finalColor.g * 255),
@@ -158,13 +160,6 @@ bool Renderer::SaveBufferToImage() const
 	return SDL_SaveBMP(m_pBuffer, "RayTracing_Buffer.bmp");
 }
 
-void dae::Renderer::CyclelightingMode()
-{
-	m_LightingMode = static_cast<LightingMode>((int(m_LightingMode) + 1) % 4);
-	std::cout << int(m_LightingMode) << "\n";
-}
-
-
 void Renderer::Input()
 {
 const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
@@ -180,19 +175,18 @@ const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
 	}
 }
 
-float Renderer::CalculateBRDF()const
-{
-	return 0.f;
-}
-
-float Renderer::CalculateRadiance()const
-{
-	return 0.f;
-}
-
 //cosine Law
 float Renderer::CalculateObservedArea(const Vector3& light, const Vector3& normal)const
 {
-	return Vector3::Dot(light, normal) / light.Magnitude();
+	float value{ Vector3::Dot(light, normal) / light.Magnitude() };
+	value = (value > 0.f) ? value : 0.f;
+	return value;
 }
+
+void dae::Renderer::CyclelightingMode()
+{
+	m_LightingMode = static_cast<LightingMode>((int(m_LightingMode) + 1) % 4);
+	//std::cout << int(m_LightingMode) << "\n";
+}
+
 
