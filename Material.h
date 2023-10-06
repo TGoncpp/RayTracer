@@ -108,14 +108,24 @@ namespace dae
 
 		ColorRGB Shade(const HitRecord& hitRecord = {}, const Vector3& l = {}, const Vector3& v = {}) override
 		{
-			//todo: W3
-			return {};
+			Vector3 halfVector{ (-v + l)/ (-v + l).Magnitude()};
+			ColorRGB defColor{1.f, 1.f, 1.f };
+
+			return {(BRDF::FresnelFunction_Schlick(halfVector, -v, m_F0) 
+				* BRDF::GeometryFunction_Smith(hitRecord.normal, -v, l, m_Alpha)
+				*  BRDF::NormalDistribution_GGX(hitRecord.normal, halfVector, m_Alpha))
+			/  (4.f * Vector3::Dot(hitRecord.normal, -v) * Vector3::Dot(hitRecord.normal, l)
+			)};
 		}
 
 	private:
 		ColorRGB m_Albedo{0.955f, 0.637f, 0.538f}; //Copper
 		float m_Metalness{1.0f};
 		float m_Roughness{0.1f}; // [1.0 > 0.0] >> [ROUGH > SMOOTH]
+		float m_Alpha{ powf(m_Roughness, 2.f) };
+		const ColorRGB DEF{ 0.04f, 0.04f, 0.04f };
+		ColorRGB m_F0 = (m_Metalness <= 0)? DEF : m_Albedo;
+
 	};
 #pragma endregion
 }

@@ -90,13 +90,13 @@ void Renderer::Render(Scene* pScene) const
 							break;
 
 						case LightingMode::BRDF:
-							finalColor += materials[hitRecord.materialIndex]->Shade(hitRecord, -lightDirNrm, -ray.direction);
+							finalColor += materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction);
 							break;
 
 						case LightingMode::Combined:
 							finalColor +=
 								LightUtils::GetRadiance(lights[i], hitRecord.origin) *
-								materials[hitRecord.materialIndex]->Shade(hitRecord, -lightDirNrm, -ray.direction) *
+								materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction) *
 								CalculateObservedArea(lightDir, hitRecord.normal);
 							break;
 						default:

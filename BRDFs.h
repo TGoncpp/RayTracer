@@ -1,6 +1,7 @@
 #pragma once
 #include <cassert>
 #include "Math.h"
+#include <iostream>
 
 namespace dae
 {
@@ -35,8 +36,10 @@ namespace dae
 		static ColorRGB Phong(float ks, float exp, const Vector3& l, const Vector3& v, const Vector3& n)
 		{
 			Vector3 reflect{ Vector3::Reflect(l, n).Normalized()};
-			float cosAlp{ (Vector3::Dot(reflect, v) > 0.f)? Vector3::Dot(reflect, v)  : 0.f };
-			return {ks * powf(cosAlp , exp)};
+			//float cosAlp{ (Vector3::Dot(reflect, v) > 0.f)? Vector3::Dot(reflect, v)  : 0.f };
+			float cosAlp{ std::max(0.f, Vector3::Dot(reflect, v))};
+			float value{ ks * powf(cosAlp , exp) };
+			return {value, value, value};
 		}
 
 		/**
@@ -48,8 +51,9 @@ namespace dae
 		 */
 		static ColorRGB FresnelFunction_Schlick(const Vector3& h, const Vector3& v, const ColorRGB& f0)
 		{
-			//todo: W3
-			return {};
+			ColorRGB one{ 1.f, 1.f, 1.f };
+
+			return { f0 + (one - f0) * powf(1.f - fmaxf(Vector3::Dot(v,h), 0.f), 5.f) };
 		}
 
 		/**
@@ -61,8 +65,8 @@ namespace dae
 		 */
 		static float NormalDistribution_GGX(const Vector3& n, const Vector3& h, float roughness)
 		{
-			//todo: W3
-			return {};
+			float alphSqr{ powf(roughness, 2.f) };
+			return { alphSqr / (float(M_PI) * powf(  powf(Vector3::Dot(n, h), 2.f) *( alphSqr - 1.f) +1.f, 2.f  ) )};
 		}
 
 
@@ -75,8 +79,9 @@ namespace dae
 		 */
 		static float GeometryFunction_SchlickGGX(const Vector3& n, const Vector3& v, float roughness)
 		{
-			//todo: W3
-			return {};
+			float dotNV{ fmaxf(Vector3::Dot(n, v), 0.f) };
+			float kDirect{ powf(roughness + 1.f, 2) / 8.f };
+			return {dotNV/ (dotNV * (1.f - kDirect) + kDirect)};
 		}
 
 		/**
@@ -89,8 +94,9 @@ namespace dae
 		 */
 		static float GeometryFunction_Smith(const Vector3& n, const Vector3& v, const Vector3& l, float roughness)
 		{
-			//todo: W3
-			return {};
+			float dotNL{ fmaxf(Vector3::Dot(n, l), 0.f) };
+			float kDirect{ powf(roughness + 1.f, 2) / 8.f };
+			return { (dotNL / (dotNL * (1.f - kDirect) + kDirect)) * GeometryFunction_SchlickGGX(n, v, roughness)};
 		}
 
 	}
