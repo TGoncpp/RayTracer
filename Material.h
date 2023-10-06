@@ -110,10 +110,17 @@ namespace dae
 		{
 			Vector3 halfVector{ (-v + l)/ (-v + l).Magnitude()};
 			ColorRGB defColor{1.f, 1.f, 1.f };
+			ColorRGB specularKonstant{ BRDF::FresnelFunction_Schlick(halfVector, -v, m_F0) };
+			float kd{ 1.f - specularKonstant.r };
+			kd = (m_Metalness == 0.f) ? kd : 0.f;
 
-			return {(BRDF::FresnelFunction_Schlick(halfVector, -v, m_F0) 
+
+			return { kd * BRDF::Lambert(kd, m_Albedo) 
+				+
+				specularKonstant.r * 
+				( BRDF::FresnelFunction_Schlick(halfVector, -v, m_F0)
 				* BRDF::GeometryFunction_Smith(hitRecord.normal, -v, l, m_Alpha)
-				*  BRDF::NormalDistribution_GGX(hitRecord.normal, halfVector, m_Alpha))
+				* BRDF::NormalDistribution_GGX(hitRecord.normal, halfVector, m_Alpha))
 			/  (4.f * Vector3::Dot(hitRecord.normal, -v) * Vector3::Dot(hitRecord.normal, l)
 			)};
 		}
