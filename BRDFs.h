@@ -65,7 +65,7 @@ namespace dae
 		 */
 		static float NormalDistribution_GGX(const Vector3& n, const Vector3& h, float roughness)
 		{
-			float alphSqr{ powf(roughness, 2.f) };
+			float alphSqr{ roughness * roughness };
 			return { alphSqr / (float(M_PI) * powf(  powf(Vector3::Dot(n, h), 2.f) *( alphSqr - 1.f) +1.f, 2.f  ) )};
 		}
 

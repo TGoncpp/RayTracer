@@ -108,9 +108,9 @@ namespace dae
 
 		ColorRGB Shade(const HitRecord& hitRecord = {}, const Vector3& l = {}, const Vector3& v = {}) override
 		{
-			Vector3 halfVector{ (-v + l)/ (-v + l).Magnitude()};
-			ColorRGB defColor{1.f, 1.f, 1.f };
-			ColorRGB specularKonstant{ BRDF::FresnelFunction_Schlick(halfVector, -v, m_F0) };
+			const Vector3 halfVector{ (-v + l)/ (-v + l).Magnitude()};
+			const ColorRGB defColor{1.f, 1.f, 1.f };
+			const ColorRGB specularKonstant{ BRDF::FresnelFunction_Schlick(halfVector, -v, m_F0) };
 			float kd{ 1.f - specularKonstant.r };
 			kd = (m_Metalness == 0.f) ? kd : 0.f;
 
@@ -118,7 +118,7 @@ namespace dae
 			return { kd * BRDF::Lambert(kd, m_Albedo) 
 				+
 				specularKonstant.r * 
-				( BRDF::FresnelFunction_Schlick(halfVector, -v, m_F0)
+				(specularKonstant
 				* BRDF::GeometryFunction_Smith(hitRecord.normal, -v, l, m_Alpha)
 				* BRDF::NormalDistribution_GGX(hitRecord.normal, halfVector, m_Alpha))
 			/  (4.f * Vector3::Dot(hitRecord.normal, -v) * Vector3::Dot(hitRecord.normal, l)

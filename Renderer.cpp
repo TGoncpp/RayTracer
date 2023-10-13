@@ -64,11 +64,21 @@ void Renderer::Render(Scene* pScene) const
 				//Check lighting on the location spotted by camera
 				for (int i{}; i < lights.size(); ++i)
 				{
-					Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[i], hitRecord.origin) };
-					Vector3 lightDirNrm{ lightDir.Normalized()};
-					Ray LightRay{ {hitRecord.origin + hitRecord.normal * 0.001f} ,lightDirNrm };
+					const Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[i], hitRecord.origin) };
+					Ray LightRay{ {hitRecord.origin + hitRecord.normal * 0.002f} ,{} };
 					LightRay.max = (lights[i].origin - hitRecord.origin).Magnitude();
 					LightRay.min = 0.0001f;
+					const Vector3 lightDirNrm{ lightDir/LightRay.max};
+					LightRay.direction = lightDirNrm;
+					const float cosArea {CalculateObservedArea(lightDir, hitRecord.normal, LightRay.max) };
+							
+					
+					if (cosArea <= 0)
+					{
+						if (m_LightingMode != LightingMode::BRDF)
+							continue;
+					}
+
 
 					//if shadows enabled ,put shadow
 					if (m_ShadowEnabled && pScene->DoesHit(LightRay) )
@@ -80,9 +90,9 @@ void Renderer::Render(Scene* pScene) const
 						switch (m_LightingMode)
 						{
 						case LightingMode::ObservedArea:
-							finalColor.r += (CalculateObservedArea(lightDir, hitRecord.normal));
-							finalColor.g += (CalculateObservedArea(lightDir, hitRecord.normal));
-							finalColor.b += (CalculateObservedArea(lightDir, hitRecord.normal));
+							finalColor.r += cosArea;
+							finalColor.g += cosArea;
+							finalColor.b += cosArea;
 							break;
 
 						case LightingMode::Radiance:
@@ -95,9 +105,9 @@ void Renderer::Render(Scene* pScene) const
 
 						case LightingMode::Combined:
 							finalColor +=
-								LightUtils::GetRadiance(lights[i], hitRecord.origin) *
 								materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction) *
-								CalculateObservedArea(lightDir, hitRecord.normal);
+								LightUtils::GetRadiance(lights[i], hitRecord.origin) *
+								cosArea;
 							break;
 						default:
 							break;
@@ -112,7 +122,7 @@ void Renderer::Render(Scene* pScene) const
 			//if no hit on an object in world --> finalcolor = 0
 			else
 			{
-				finalColor = {};
+				finalColor += {};
 			}
 
 #pragma region comment
@@ -176,9 +186,9 @@ const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
 }
 
 //cosine Law
-float Renderer::CalculateObservedArea(const Vector3& light, const Vector3& normal)const
+float Renderer::CalculateObservedArea(const Vector3& light, const Vector3& normal, float lightMagnitude)const
 {
-	float value{ Vector3::Dot(light, normal) / light.Magnitude() };
+	float value{ Vector3::Dot(light, normal) / lightMagnitude };
 	value = (value > 0.f) ? value : 0.f;
 	return value;
 }
