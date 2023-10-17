@@ -32,7 +32,7 @@ void Renderer::Render(Scene* pScene) const
 	float x{}, y{};
 	const float 
 		ar{ float(m_Width) / float(m_Height) },
-		fov{ tanf(dae::TO_RADIANS * camera.fovAngle/2.0f) };
+		fov{ tanf(dae::TO_RADIANS * camera.fovAngle*0.5f) };
 	Ray ray{ camera.origin, {} };
 	HitRecord hitRecord{};
 	
@@ -42,13 +42,13 @@ void Renderer::Render(Scene* pScene) const
 	for (int px{}; px < m_Width; ++px)
 	{
 			float pxc = float(px) + .5f;
-			x = (2 * pxc / float(m_Width)-1) * ar * fov;
+			x = (2.f * pxc / float(m_Width)-1) * ar * fov;
 
 		for (int py{}; py < m_Height; ++py)
 		{
 			ColorRGB finalColor{};
 			float pyc = float(py) + .5f;
-			y = (1 - 2 * pyc / float(m_Height)) * fov;
+			y = (1 - 2.f * pyc / float(m_Height)) * fov;
 			ray.direction.x = x;
 			ray.direction.y = y;
 			ray.direction.z = 1.0f;
@@ -68,7 +68,7 @@ void Renderer::Render(Scene* pScene) const
 					Ray LightRay{ {hitRecord.origin + hitRecord.normal * 0.002f} ,{} };
 					LightRay.max = (lights[i].origin - hitRecord.origin).Magnitude();
 					LightRay.min = 0.0001f;
-					const Vector3 lightDirNrm{ lightDir/LightRay.max};
+					const Vector3 lightDirNrm{ lightDir / LightRay.max };
 					LightRay.direction = lightDirNrm;
 					const float cosArea {CalculateObservedArea(lightDir, hitRecord.normal, LightRay.max) };
 							

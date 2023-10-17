@@ -18,36 +18,40 @@ namespace dae
 			const float C{ Vector3::Dot(ray.origin - sphere.origin, ray.origin - sphere.origin) - sphere.radius * sphere.radius };
 			const float Discrimenant{ (B * B - 4.0f /** A*/ * C) };
 
-			if (Discrimenant < 0 || ignoreHitRecord)
+			if (Discrimenant < 0 )
 				return false;
 
-			float t{ (-B - sqrtf(Discrimenant)) / (2.0f /** A*/) };
+			float t{ (-B - sqrtf(Discrimenant)) *0.5f };
+			//float t{ (-B - sqrtf(Discrimenant)) / (2.0f /** A*/) };
 
 			if (t < 0.f)
-				t = (-B + sqrtf(Discrimenant)) / (2.0f /** A*/);
+				t = (-B + sqrtf(Discrimenant)) *0.5f;
+				//t = (-B + sqrtf(Discrimenant)) / (2.0f /** A*/);
 
+			//if t is invallid-> return
 			if (t >= ray.max || t < ray.min  )
 				return false;
 
 			//fill in hit record on first hit
 			if (!hitRecord.didHit )
 			{
-				hitRecord.t = t;
-				hitRecord.origin = ray.origin + ray.direction * t;
+				hitRecord.t             = t;
+				hitRecord.didHit        = true;  
+				if (ignoreHitRecord)return true;
+				hitRecord.origin        = ray.origin + ray.direction * t;
 				hitRecord.materialIndex = sphere.materialIndex;
-				hitRecord.normal = (hitRecord.origin - sphere.origin) / sphere.radius;
-				hitRecord.didHit = true;
+				hitRecord.normal        = (hitRecord.origin - sphere.origin) / sphere.radius;
 				return true;	
 			}
 
 			//if hitrecord was already filled, check new t-value
 			else if (hitRecord.didHit && t < hitRecord.t)
 			{
-				hitRecord.t = t;
-				hitRecord.origin = ray.origin + ray.direction * t;
+				hitRecord.t             = t;
+				if (ignoreHitRecord)return true;
+				hitRecord.origin        = ray.origin + ray.direction * t;
 				hitRecord.materialIndex = sphere.materialIndex;
-				hitRecord.normal = (hitRecord.origin - sphere.origin) / sphere.radius;
-				hitRecord.didHit = true;
+				hitRecord.normal        = (hitRecord.origin - sphere.origin) / sphere.radius;
 				return true;
 			}
 			return false;
@@ -63,27 +67,30 @@ namespace dae
 		//PLANE HIT-TESTS
 		inline bool HitTest_Plane(const Plane& plane, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			float t = Vector3::Dot((plane.origin - ray.origin), plane.normal) / Vector3::Dot(ray.direction, plane.normal);
+			const float t = Vector3::Dot((plane.origin - ray.origin), plane.normal) / Vector3::Dot(ray.direction, plane.normal);
 			
+			//if t is invallid-> return
+			if (t > ray.max || t < ray.min)return false;
 			//check first hit
-			if (!hitRecord.didHit && t < ray.max && t > ray.min  )
+			if (!hitRecord.didHit) 
 			{
 				hitRecord.t             = t;
+				hitRecord.didHit        = true;
+				if (ignoreHitRecord)return true;
 				hitRecord.origin        = ray.origin + ray.direction * hitRecord.t;
 				hitRecord.materialIndex = plane.materialIndex;
 				hitRecord.normal		= plane.normal;
-				hitRecord.didHit        = true;
 				return true;
 
 			}
 			//check t for smaller value when was already hit
-			else if (hitRecord.didHit && t < hitRecord.t && t < ray.max && t > ray.min)
+			else if (hitRecord.didHit && t < hitRecord.t )
 			{
-				hitRecord.t = t;
-				hitRecord.origin = ray.origin + ray.direction * hitRecord.t;
+				hitRecord.t             = t;
+				if (ignoreHitRecord)return true;
+				hitRecord.origin        = ray.origin + ray.direction * hitRecord.t;
 				hitRecord.materialIndex = plane.materialIndex;
-				hitRecord.normal = plane.normal;
-				hitRecord.didHit = true;
+				hitRecord.normal        = plane.normal;
 				return true;
 
 			}
@@ -100,8 +107,68 @@ namespace dae
 		//TRIANGLE HIT-TESTS
 		inline bool HitTest_Triangle(const Triangle& triangle, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			//todo W5
-			assert(false && "No Implemented Yet!");
+			
+			switch(triangle.cullMode)
+			{
+			case TriangleCullMode::NoCulling:
+
+				if (Vector3::Dot(ray.direction, triangle.normal) == 0 ) return false;
+				break;
+
+			case TriangleCullMode::BackFaceCulling:
+
+				if (Vector3::Dot(ray.direction, triangle.normal) > 0 && !ignoreHitRecord) return false;
+				if (Vector3::Dot(ray.direction, triangle.normal) < 0 && ignoreHitRecord) return false;
+				break;
+
+			case TriangleCullMode::FrontFaceCulling:
+
+				if (Vector3::Dot(ray.direction, triangle.normal ) < 0 && !ignoreHitRecord) return false;
+				if (Vector3::Dot(ray.direction, triangle.normal) > 0  &&  ignoreHitRecord) return false;
+				break;
+
+			default:
+				break;
+
+			}
+
+
+			const float t = Vector3::Dot((triangle.v0 - ray.origin), triangle.normal) / Vector3::Dot(ray.direction, triangle.normal);
+			if (t > ray.max || t < ray.min)return false;
+			Vector3 pointOnPlane = ray.origin + ray.direction * t;
+
+			//Check if point is on triangle
+			Vector3 
+				edge{ triangle.v1 - triangle.v0 },
+				edgeToCompare{pointOnPlane - triangle.v0 };
+			if (Vector3::Dot(Vector3::Cross(triangle.v1 - triangle.v0, pointOnPlane - triangle.v0), triangle.normal) <= 0.0f) { return false; };
+			if (Vector3::Dot(Vector3::Cross(triangle.v2 - triangle.v1, pointOnPlane - triangle.v1), triangle.normal) <= 0.0f) { return false; };
+			if (Vector3::Dot(Vector3::Cross(triangle.v0 - triangle.v2, pointOnPlane - triangle.v2), triangle.normal) <= 0.0f) { return false; };
+
+
+			//check first hit
+			if (!hitRecord.didHit)
+			{
+				hitRecord.t = t;
+				hitRecord.didHit = true;
+				if (ignoreHitRecord)return true;
+				hitRecord.origin = ray.origin + ray.direction * hitRecord.t;
+				hitRecord.materialIndex = triangle.materialIndex;
+				hitRecord.normal = triangle.normal;
+				return true;
+
+			}
+			//check t for smaller value when was already hit
+			else if (hitRecord.didHit && t < hitRecord.t)
+			{
+				hitRecord.t = t;
+				if (ignoreHitRecord)return true;
+				hitRecord.origin = ray.origin + ray.direction * hitRecord.t;
+				hitRecord.materialIndex = triangle.materialIndex;
+				hitRecord.normal = triangle.normal;
+				return true;
+
+			}
 			return false;
 		}
 
@@ -114,9 +181,7 @@ namespace dae
 #pragma region TriangeMesh HitTest
 		inline bool HitTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			//todo W5
-			assert(false && "No Implemented Yet!");
-			return false;
+			//for (const Triangle& triangle : mesh.)
 		}
 
 		inline bool HitTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray)

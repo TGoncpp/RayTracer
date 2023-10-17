@@ -27,17 +27,24 @@ namespace dae
 		Vector3 right{Vector3::UnitX};
 
 		float totalPitch{0.f};
-		float totalYaw{0.f};
+		float totalYawn{0.f};
 
 		Matrix cameraToWorld{};
 
 
+
 		Matrix CalculateCameraToWorld()
 		{
-			Vector3 worldUp{0.f, 1.f, 0.f};
+			Matrix newRotion{
+					Matrix::CreateRotation({totalPitch, totalYawn, 0.f}) };
+			forward = newRotion.TransformVector(Vector3::UnitZ);
 			forward.Normalize();
+
+			Vector3 worldUp{0.f, 1.f, 0.f};
+			//forward.Normalize();
 			right = Vector3::Cross(worldUp, forward).Normalized();
 			up    = Vector3::Cross(forward, right).Normalized();
+
 			return
 			{
 					{		right   },
@@ -54,7 +61,7 @@ namespace dae
 			float 
 				scrollSpeed{ 7.f },
 				swipeSpeed{ 0.25f },
-				rotationSpeed{ 0.035f };
+				rotationSpeed{ 0.05f };
 
 			//Keyboard Input
 			//*********************************
@@ -99,11 +106,12 @@ namespace dae
 			//Rotation
 			if ( SDL_BUTTON(3) == mouseState)
 			{
-				Matrix newRotion{
-					Matrix::CreateRotation({float(mouseY) * deltaTime * rotationSpeed, float(mouseX) * deltaTime * rotationSpeed, 0.f}) };
-				//forward = newRotion.TransformVector(Vector3::UnitZ);
-				forward = newRotion.TransformVector(forward);
-				forward.Normalize();
+				totalPitch += float(mouseY) * deltaTime * rotationSpeed;
+				totalYawn  += float(mouseX) * deltaTime * rotationSpeed;
+				/*Matrix newRotion{
+					Matrix::CreateRotation({totalPitch, totalYawn, 0.f}) };
+				forward = newRotion.TransformVector(Vector3::UnitZ);
+				forward.Normalize();*/
 				cameraToWorld = CalculateCameraToWorld();
 				
 			}

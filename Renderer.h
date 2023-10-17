@@ -47,7 +47,7 @@ namespace dae
 		};
 
 		bool m_ShadowEnabled{ true };
-		LightingMode m_LightingMode{ LightingMode::BRDF };
+		LightingMode m_LightingMode{ LightingMode::Combined };
 
 		float CalculateObservedArea(const Vector3& light, const Vector3& normal, float lightMagnitude)const;
 	};

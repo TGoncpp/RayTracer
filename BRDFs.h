@@ -35,10 +35,10 @@ namespace dae
 		 */
 		static ColorRGB Phong(float ks, float exp, const Vector3& l, const Vector3& v, const Vector3& n)
 		{
-			Vector3 reflect{ Vector3::Reflect(l, n).Normalized()};
-			//float cosAlp{ (Vector3::Dot(reflect, v) > 0.f)? Vector3::Dot(reflect, v)  : 0.f };
-			float cosAlp{ std::max(0.f, Vector3::Dot(reflect, v))};
-			float value{ ks * powf(cosAlp , exp) };
+			const Vector3 reflect{ Vector3::Reflect(l, n).Normalized()};
+			const float cosAlp{ std::max(0.f, Vector3::Dot(reflect, v))};
+			if (cosAlp <= 0.f) return { 0.f, 0.f, 0.f };
+			const float value{ ks * powf(cosAlp , exp) };
 			return {value, value, value};
 		}
 
@@ -51,9 +51,12 @@ namespace dae
 		 */
 		static ColorRGB FresnelFunction_Schlick(const Vector3& h, const Vector3& v, const ColorRGB& f0)
 		{
-			ColorRGB one{ 1.f, 1.f, 1.f };
+			const ColorRGB one{ 1.f, 1.f, 1.f };
+			const float dotVH{ fmaxf(Vector3::Dot(v,h), 0.f) };
+			if (dotVH == 0.f) return f0;
 
-			return { f0 + (one - f0) * powf(1.f - fmaxf(Vector3::Dot(v,h), 0.f), 5.f) };
+			return { f0 + (one - f0) * ( (1.f - dotVH) * (1.f - dotVH) * (1.f - dotVH) * (1.f - dotVH) * (1.f - dotVH) ) };
+			//return { f0 + (one - f0) * powf(1.f - fmaxf(Vector3::Dot(v,h), 0.f), 5.f) };
 		}
 
 		/**
@@ -65,8 +68,11 @@ namespace dae
 		 */
 		static float NormalDistribution_GGX(const Vector3& n, const Vector3& h, float roughness)
 		{
-			float alphSqr{ roughness * roughness };
-			return { alphSqr / (float(M_PI) * powf(  powf(Vector3::Dot(n, h), 2.f) *( alphSqr - 1.f) +1.f, 2.f  ) )};
+			const float alphSqr{ roughness * roughness };
+			const float dotNH{ Vector3::Dot(n, h) };
+			const float dotNHAlpha{ (dotNH * dotNH) * (alphSqr - 1.f) + 1.f };
+			return { alphSqr / (float(M_PI) * (dotNHAlpha * dotNHAlpha ) )};
+			//return { alphSqr / (float(M_PI) * powf(  powf(Vector3::Dot(n, h), 2.f) *( alphSqr - 1.f) +1.f, 2.f  ) )};
 		}
 
 
@@ -79,8 +85,8 @@ namespace dae
 		 */
 		static float GeometryFunction_SchlickGGX(const Vector3& n, const Vector3& v, float roughness)
 		{
-			float dotNV{ fmaxf(Vector3::Dot(n, v), 0.f) };
-			float kDirect{ powf(roughness + 1.f, 2) / 8.f };
+			const float dotNV{ fmaxf(Vector3::Dot(n, v), 0.f) };
+			const float kDirect{ ((roughness + 1.f) * (roughness + 1.f)) / 8.f };
 			return {dotNV/ (dotNV * (1.f - kDirect) + kDirect)};
 		}
 
