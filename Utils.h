@@ -139,18 +139,18 @@ namespace dae
 			if (Vector3::Dot(Vector3::Cross(triangle.v2 - triangle.v1, pointOnPlane - triangle.v1), triangle.normal) <= 0.0f) { return false; };
 			if (Vector3::Dot(Vector3::Cross(triangle.v0 - triangle.v2, pointOnPlane - triangle.v2), triangle.normal) <= 0.0f) { return false; };
 
-			////check first hit
-			//if (!hitRecord.didHit)
-			//{
-			//	hitRecord.t             = t;
-			//	hitRecord.didHit        = true;
-			//	if (ignoreHitRecord)return true;
-			//	hitRecord.origin        = ray.origin + ray.direction * hitRecord.t;
-			//	hitRecord.materialIndex = triangle.materialIndex;
-			//	hitRecord.normal        = triangle.normal;
-			//	return true;
+			//check first hit
+			if (!hitRecord.didHit)
+			{
+				hitRecord.t             = t;
+				hitRecord.didHit        = true;
+				if (ignoreHitRecord)return true;
+				hitRecord.origin        = ray.origin + ray.direction * hitRecord.t;
+				hitRecord.materialIndex = triangle.materialIndex;
+				hitRecord.normal        = triangle.normal;
+				return true;
 
-			//}
+			}
 			//check t for smaller value when was already hit
 			 if (hitRecord.didHit && t < hitRecord.t)
 			{

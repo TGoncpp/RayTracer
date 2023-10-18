@@ -94,7 +94,7 @@ namespace dae
 		Matrix translationTransform{};
 		Matrix scaleTransform{};
 
-		Matrix finalTransform{};
+		//Matrix finalTransform{};
 
 		std::vector<Vector3> transformedPositions{};
 		std::vector<Vector3> transformedNormals{};
@@ -147,7 +147,7 @@ namespace dae
 		void UpdateTransforms()
 		{
 			////Calculate Final Transform 
-			finalTransform *= scaleTransform * rotationTransform * translationTransform ;
+			const auto finalTransform = scaleTransform * rotationTransform * translationTransform ;
 			
 			//Transform Positions (positions > transformedPositions)
 			transformedPositions.clear();
