@@ -60,6 +60,11 @@ namespace dae
 		TriangleMesh(const std::vector<Vector3>& _positions, const std::vector<int>& _indices, TriangleCullMode _cullMode):
 		positions(_positions), indices(_indices), cullMode(_cullMode)
 		{
+			////memory pool 
+			//normals.resize(indices.size() / 3);
+			//transformedNormals.resize(normals.size());
+			//transformedPositions.resize(positions.size());
+
 			//Calculate Normals
 			CalculateNormals();
 
@@ -70,6 +75,11 @@ namespace dae
 		TriangleMesh(const std::vector<Vector3>& _positions, const std::vector<int>& _indices, const std::vector<Vector3>& _normals, TriangleCullMode _cullMode) :
 			positions(_positions), indices(_indices), normals(_normals), cullMode(_cullMode)
 		{
+			////memory pool 
+			//normals.resize(indices.size() / 3);
+			//transformedNormals.resize(normals.size());
+			//transformedPositions.resize(positions.size());
+
 			UpdateTransforms();
 		}
 
@@ -83,6 +93,8 @@ namespace dae
 		Matrix rotationTransform{};
 		Matrix translationTransform{};
 		Matrix scaleTransform{};
+
+		Matrix finalTransform{};
 
 		std::vector<Vector3> transformedPositions{};
 		std::vector<Vector3> transformedNormals{};
@@ -128,26 +140,31 @@ namespace dae
 				Vector3 vec1{ positions[indices[i * 3 + 1]] - positions[indices[i * 3 ]] };
 				Vector3 vec2{ positions[indices[i * 3 + 2]] - positions[indices[i * 3 ]] };
 
-				normals[i] = Vector3::Cross(vec1,vec2);
+				normals.push_back( Vector3::Cross(vec1,vec2));
 			}
 		}
 
 		void UpdateTransforms()
 		{
-			//Calculate Final Transform 
-			const auto finalTransform = scaleTransform * rotationTransform * translationTransform;
-
+			////Calculate Final Transform 
+			finalTransform *= scaleTransform * rotationTransform * translationTransform ;
+			
 			//Transform Positions (positions > transformedPositions)
-			for (int i{}; positions.size(); ++i)
+			transformedPositions.clear();
+			transformedPositions.reserve(positions.size());
+			for (int i{}; i < positions.size(); ++i)
 			{
-				transformedPositions[i] = finalTransform.TransformPoint(positions[i]);
+				transformedPositions.emplace_back( finalTransform.TransformPoint(positions[i]));
+			}
+			
+			//Transform Normals (normals > transformedNormals)
+			transformedNormals.clear();
+			transformedNormals.reserve(normals.size());
+			for (int i{}; i < normals.size(); ++i)
+			{
+				transformedNormals.emplace_back(finalTransform.TransformVector(normals[i]));
 			}
 
-			//Transform Normals (normals > transformedNormals)
-			for (int i{}; normals.size(); ++i)
-			{
-				transformedNormals[i] = finalTransform.TransformPoint(normals[i]);
-			}
 		}
 	};
 #pragma endregion

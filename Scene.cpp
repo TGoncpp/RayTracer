@@ -90,7 +90,6 @@ namespace dae {
 
 	void dae::Scene::GetClosestHit(const Ray& ray, HitRecord& closestHit) const
 	{
-		
 		//Spheres
 		for (int index{}; index < m_SphereGeometries.size(); ++index)
 		{
@@ -100,17 +99,14 @@ namespace dae {
 		//planes
 		for (int index{}; index < m_PlaneGeometries.size(); ++index)
 		{
-			
 			GeometryUtils::HitTest_Plane(m_PlaneGeometries[index], ray, closestHit);
 		}
 
 		////Triangles
-		for (int index{}; index < m_Triangles.size(); ++index)
+		for (int index{}; index < m_TriangleMeshGeometries.size(); ++index)
 		{
 			GeometryUtils::HitTest_TriangleMesh(m_TriangleMeshGeometries[index], ray, closestHit);
 		}
-
-
 	}
 
 	bool Scene::DoesHit(const Ray& ray) const
@@ -124,6 +120,7 @@ namespace dae {
 				return true;
 		}
 
+
 		//planes
 		for (int index{}; index < m_PlaneGeometries.size(); ++index)
 		{
@@ -132,13 +129,12 @@ namespace dae {
 		}
 
 		//Triangles
-		for (int index{}; index < m_Triangles.size(); ++index)
+		for (int index{}; index < m_TriangleMeshGeometries.size(); ++index)
 		{
 			if (GeometryUtils::HitTest_TriangleMesh(m_TriangleMeshGeometries[index], ray, hit, true))
 				return true;
 		}
 		return false;
-
 		
 	}
 
@@ -157,8 +153,8 @@ namespace dae {
 	Plane* Scene::AddPlane(const Vector3& origin, const Vector3& normal, unsigned char materialIndex)
 	{
 		Plane p;
-		p.origin = origin;
-		p.normal = normal;
+		p.origin        = origin;
+		p.normal        = normal;
 		p.materialIndex = materialIndex;
 
 		m_PlaneGeometries.emplace_back(p);
@@ -168,7 +164,7 @@ namespace dae {
 	TriangleMesh* Scene::AddTriangleMesh(TriangleCullMode cullMode, unsigned char materialIndex)
 	{
 		TriangleMesh m{};
-		m.cullMode = cullMode;
+		m.cullMode      = cullMode;
 		m.materialIndex = materialIndex;
 
 		m_TriangleMeshGeometries.emplace_back(m);
@@ -339,10 +335,10 @@ namespace dae {
 
 		//Planes
 		AddPlane(Vector3{ 0.f, 0.f, 10.f }, Vector3{ 0.f, 0.f, -1.f }, matLambert_GrayBlue); //BACK
-		AddPlane(Vector3{ 0.f, 0.f, 0.f }, Vector3{ 0.f, 1.f, 0.f }, matLambert_GrayBlue); //BOTTOM
-		AddPlane(Vector3{ 0.f, 10.f, 0.f }, Vector3{ 0.f, -1.f, 0.f }, matLambert_GrayBlue); //TOP
-		AddPlane(Vector3{ 5.f, 0.f, 0.f }, Vector3{ -1.f, 0.f, 0.f }, matLambert_GrayBlue); //RIGHT
-		AddPlane(Vector3{ -5.f, 0.f, 0.f }, Vector3{ 1.f, 0.f, 0.f }, matLambert_GrayBlue); //LEFT
+		//AddPlane(Vector3{ 0.f, 0.f, 0.f }, Vector3{ 0.f, 1.f, 0.f }, matLambert_GrayBlue); //BOTTOM
+		//AddPlane(Vector3{ 0.f, 10.f, 0.f }, Vector3{ 0.f, -1.f, 0.f }, matLambert_GrayBlue); //TOP
+		//AddPlane(Vector3{ 5.f, 0.f, 0.f }, Vector3{ -1.f, 0.f, 0.f }, matLambert_GrayBlue); //RIGHT
+		//AddPlane(Vector3{ -5.f, 0.f, 0.f }, Vector3{ 1.f, 0.f, 0.f }, matLambert_GrayBlue); //LEFT
 
 		//Triangle (Temp)
 		//===============
@@ -368,7 +364,9 @@ namespace dae {
 
 		pMesh->CalculateNormals();
 
-		pMesh->Translate({ 0.f,1.5f,0.f });
+		//pMesh->Translate({ 0.f,1.5f,0.f });
+		pMesh->RotateY(45.f);
+
 		pMesh->UpdateTransforms();
 
 		////OBJ

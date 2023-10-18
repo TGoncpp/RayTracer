@@ -129,43 +129,40 @@ namespace dae
 
 			default:
 				break;
-
 			}
-
 
 			const float t = Vector3::Dot((triangle.v0 - ray.origin), triangle.normal) / Vector3::Dot(ray.direction, triangle.normal);
 			if (t > ray.max || t < ray.min)return false;
-			Vector3 pointOnPlane = ray.origin + ray.direction * t;
+			Vector3 pointOnPlane{ ray.origin + ray.direction * t };
 
 			//Check if point is on triangle
 			Vector3 
-				edge{ triangle.v1 - triangle.v0 },
-				edgeToCompare{pointOnPlane - triangle.v0 };
+				edge{ triangle.v1 - triangle.v0 };
+
 			if (Vector3::Dot(Vector3::Cross(triangle.v1 - triangle.v0, pointOnPlane - triangle.v0), triangle.normal) <= 0.0f) { return false; };
 			if (Vector3::Dot(Vector3::Cross(triangle.v2 - triangle.v1, pointOnPlane - triangle.v1), triangle.normal) <= 0.0f) { return false; };
 			if (Vector3::Dot(Vector3::Cross(triangle.v0 - triangle.v2, pointOnPlane - triangle.v2), triangle.normal) <= 0.0f) { return false; };
 
+			////check first hit
+			//if (!hitRecord.didHit)
+			//{
+			//	hitRecord.t             = t;
+			//	hitRecord.didHit        = true;
+			//	if (ignoreHitRecord)return true;
+			//	hitRecord.origin        = ray.origin + ray.direction * hitRecord.t;
+			//	hitRecord.materialIndex = triangle.materialIndex;
+			//	hitRecord.normal        = triangle.normal;
+			//	return true;
 
-			//check first hit
-			if (!hitRecord.didHit)
-			{
-				hitRecord.t = t;
-				hitRecord.didHit = true;
-				if (ignoreHitRecord)return true;
-				hitRecord.origin = ray.origin + ray.direction * hitRecord.t;
-				hitRecord.materialIndex = triangle.materialIndex;
-				hitRecord.normal = triangle.normal;
-				return true;
-
-			}
+			//}
 			//check t for smaller value when was already hit
-			else if (hitRecord.didHit && t < hitRecord.t)
+			 if (hitRecord.didHit && t < hitRecord.t)
 			{
-				hitRecord.t = t;
+				hitRecord.t             = t;
 				if (ignoreHitRecord)return true;
-				hitRecord.origin = ray.origin + ray.direction * hitRecord.t;
+				hitRecord.origin        = ray.origin + ray.direction * hitRecord.t;
 				hitRecord.materialIndex = triangle.materialIndex;
-				hitRecord.normal = triangle.normal;
+				hitRecord.normal        = triangle.normal;
 				return true;
 
 			}
@@ -181,7 +178,31 @@ namespace dae
 #pragma region TriangeMesh HitTest
 		inline bool HitTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray, HitRecord& hitRecord, bool ignoreHitRecord = false)
 		{
-			//for (const Triangle& triangle : mesh.)
+			HitRecord storredRecord{hitRecord};
+			bool hit{ false };
+			for (int i{}; i < mesh.indices.size() / 3; ++i)
+			{
+				Triangle triangle{
+					mesh.transformedPositions[mesh.indices[i * 3]],
+					mesh.transformedPositions[mesh.indices[i * 3 + 1]],
+					mesh.transformedPositions[mesh.indices[i * 3 + 2]],
+					mesh.normals[i]
+				};
+				triangle.cullMode      = mesh.cullMode;
+				triangle.materialIndex = mesh.materialIndex;
+				//triangle.normal        = mesh.normals[i];
+
+				if ( HitTest_Triangle(triangle, ray, hitRecord, ignoreHitRecord))
+				{
+					hit = true;
+					if (hitRecord.t > storredRecord.t)
+						hitRecord = storredRecord;
+				}
+		
+			}
+			if (hit)
+				return true;
+			return false;
 		}
 
 		inline bool HitTest_TriangleMesh(const TriangleMesh& mesh, const Ray& ray)
