@@ -133,12 +133,8 @@ namespace dae
 
 			const float t = Vector3::Dot((triangle.v0 - ray.origin), triangle.normal) / Vector3::Dot(ray.direction, triangle.normal);
 			if (t > ray.max || t < ray.min)return false;
+
 			Vector3 pointOnPlane{ ray.origin + ray.direction * t };
-
-			//Check if point is on triangle
-			Vector3 
-				edge{ triangle.v1 - triangle.v0 };
-
 			if (Vector3::Dot(Vector3::Cross(triangle.v1 - triangle.v0, pointOnPlane - triangle.v0), triangle.normal) <= 0.0f) { return false; };
 			if (Vector3::Dot(Vector3::Cross(triangle.v2 - triangle.v1, pointOnPlane - triangle.v1), triangle.normal) <= 0.0f) { return false; };
 			if (Vector3::Dot(Vector3::Cross(triangle.v0 - triangle.v2, pointOnPlane - triangle.v2), triangle.normal) <= 0.0f) { return false; };
@@ -186,7 +182,7 @@ namespace dae
 					mesh.transformedPositions[mesh.indices[i * 3]],
 					mesh.transformedPositions[mesh.indices[i * 3 + 1]],
 					mesh.transformedPositions[mesh.indices[i * 3 + 2]],
-					mesh.normals[i]
+					mesh.transformedNormals[i]
 				};
 				triangle.cullMode      = mesh.cullMode;
 				triangle.materialIndex = mesh.materialIndex;
