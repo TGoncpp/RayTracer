@@ -378,11 +378,13 @@ namespace dae {
 			pMesh->normals, 
 			pMesh->indices);
 
+		pMesh->UpdateAABB();
 		//No need to Calculate the normals, these are calculated inside the ParseOBJ function
 		pMesh->UpdateTransforms();
 
-		pMesh->Scale({ .7f,.7f,.7f });
-		pMesh->Translate({ .0f,1.f,0.f });
+		//pMesh->Scale({ .7f,.7f,.7f });
+		pMesh->Scale({ 2.f,2.f,2.f });
+		//pMesh->Translate({ .0f,1.f,0.f });
 
 
 		//Light
@@ -454,6 +456,9 @@ namespace dae {
 		AddPointLight(Vector3{ 0.f, 5.f, 5.f }, 50.f, ColorRGB{ 1.f, .61f, .45f }); //Backlight
 		AddPointLight(Vector3{ -2.5f, 5.f, -5.f }, 70.f, ColorRGB{ 1.f, .8f, .45f }); //Front Light Left
 		AddPointLight(Vector3{ 2.5f, 2.5f, -5.f }, 50.f, ColorRGB{ .34f, .47f, .68f });
+
+		//pMesh->UpdateAABB();
+
 	}
 
 	void Scene_W4_ReferenceScene::Update(Timer* pTimer)
