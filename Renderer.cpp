@@ -1,6 +1,10 @@
 //External includes
 #include "SDL.h"
 #include "SDL_surface.h"
+#include <algorithm>
+#include <execution>
+
+#define PARRALEL_EXECUTION
 
 //Project includes
 #include "Renderer.h"
@@ -25,145 +29,264 @@ Renderer::Renderer(SDL_Window * pWindow) :
 void Renderer::Render(Scene* pScene) const
 {
 
+	//auto& materials = pScene->GetMaterials();
+	//auto& lights    = pScene->GetLights();
+	//Ray ray{ camera.origin, {} };
+//	float x{}, y{};
+	//HitRecord hitRecord{};
+
 	Camera& camera  = pScene->GetCamera();
-	auto& materials = pScene->GetMaterials();
-	auto& lights    = pScene->GetLights();
 	
-	float x{}, y{};
 	const float 
 		ar{ float(m_Width) / float(m_Height) },
 		fov{ tanf(dae::TO_RADIANS * camera.fovAngle*0.5f) };
-	Ray ray{ camera.origin, {} };
-	HitRecord hitRecord{};
+	uint32_t numPixels{ uint32_t(m_Width * m_Height) };
 	
-	
-	// create ray direction vector
-	/////////////////////////////////////////
-	for (int px{}; px < m_Width; ++px)
-	{
-			float pxc = float(px) + .5f;
-			x = (2.f * pxc / float(m_Width)-1) * ar * fov;
+#if defined(PARRALEL_EXECUTION)
+	std::vector<uint32_t> pixelIndices{};
+	pixelIndices.reserve(numPixels);
+	for (int i{}; i < numPixels; ++i)
+		pixelIndices.emplace_back(i);
 
-		for (int py{}; py < m_Height; ++py)
+	std::for_each(std::execution::par, pixelIndices.begin(), pixelIndices.end(), [&](int i)
 		{
-			ColorRGB finalColor{};
-			float pyc = float(py) + .5f;
-			y = (1 - 2.f * pyc / float(m_Height)) * fov;
-			ray.direction.x = x;
-			ray.direction.y = y;
-			ray.direction.z = 1.0f;
-			ray.direction.Normalize();
-			ray.direction = camera.cameraToWorld.TransformVector(ray.direction).Normalized();
+			RenderPixel(pScene, i, fov, ar, camera.cameraToWorld, camera.origin);
+		});
 
-			//raytrace scene
-			pScene->GetClosestHit(ray, hitRecord);
-
-			//Check what the camera is seeing
-			if (hitRecord.didHit)
-			{
-				//Check lighting on the location spotted by camera
-				for (int i{}; i < lights.size(); ++i)
-				{
-					const Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[i], hitRecord.origin) };
-					Ray LightRay{ {hitRecord.origin + hitRecord.normal * 0.002f} ,{} };
-					LightRay.max = (lights[i].origin - hitRecord.origin).Magnitude();
-					LightRay.min = 0.0001f;
-					const Vector3 lightDirNrm{ lightDir / LightRay.max };
-					LightRay.direction = lightDirNrm;
-					const float cosArea {CalculateObservedArea(lightDir, hitRecord.normal, LightRay.max) };
-							
-					
-					if (cosArea <= 0)
-					{
-						if (m_LightingMode != LightingMode::BRDF)
-							continue;
-					}
-
-
-					//if shadows enabled ,put shadow
-					if (m_ShadowEnabled && pScene->DoesHit(LightRay) )
-					{
-						finalColor += {};
-					}
-					else
-					{
-						switch (m_LightingMode)
-						{
-						case LightingMode::ObservedArea:
-							finalColor.r += cosArea;
-							finalColor.g += cosArea;
-							finalColor.b += cosArea;
-							break;
-
-						case LightingMode::Radiance:
-							finalColor += LightUtils::GetRadiance(lights[i], hitRecord.origin);
-							break;
-
-						case LightingMode::BRDF:
-							finalColor += materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction);
-							break;
-
-						case LightingMode::Combined:
-							finalColor +=
-								materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction) *
-								LightUtils::GetRadiance(lights[i], hitRecord.origin) *
-								cosArea;
-							break;
-						default:
-							break;
-						}
-
-					}
-					
-				}
-				//hitrecord set false to continue search for hits with smaller t-value (closer objects)
-				hitRecord.didHit = false;
-			}
-			//if no hit on an object in world --> finalcolor = 0
-			else
-			{
-				finalColor += {};
-			}
-
-#pragma region comment
-			/////////////////////////////////////////////////////////////////////////////////////////
-			////check for correct raydirection 
-			//ColorRGB finalColor{ ray.direction.x ,ray.direction.y, ray.direction.z };
-
-			////////////////////////////////////////////////////////////////////////////////////////
-			
-			////check plane test
-			//Plane testPlane{ {0.0f,-50.0f, 0.0f }, {.0f, 1.0f, .0f}, 0 };
-			//if (GeometryUtils::HitTest_Plane(testPlane, ray, hitRecord))
-			//{
-			//	const float test_t{ hitRecord.t / 500.f };
-			//	//finalColor = materials[hitRecord.materialIndex]->Shade();
-			//	ColorRGB color{ test_t, test_t, test_t };
-			//	finalColor = color;
-			//}
-			//else
-			//{
-			//	finalColor = {};
-			//}
-
-			//////////////////////////////////////////////////////////////////////////////////////////
-			//Update Color in Buffer
-#pragma endregion 
-			finalColor.MaxToOne();
-			
-			m_pBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBuffer->format,
-				static_cast<uint8_t>(finalColor.r * 255),
-				static_cast<uint8_t>(finalColor.g * 255),
-				static_cast<uint8_t>(finalColor.b * 255));
-		}
-	}
-
+#else
+	for (int i{}; i < numPixels ; ++i)
+		RenderPixel(pScene, i, fov, ar, camera.cameraToWorld, camera.origin);
+	
+#endif
 	//@END
 	//Update SDL Surface
 	SDL_UpdateWindowSurface(m_pWindow);
 
+
+//	// create ray direction vector
+//	/////////////////////////////////////////
+//	for (int px{}; px < m_Width; ++px)
+//	{
+//			float pxc = float(px) + .5f;
+//			x = (2.f * pxc / float(m_Width)-1) * ar * fov;
+//
+//		for (int py{}; py < m_Height; ++py)
+//		{
+//			float pyc = float(py) + .5f;
+//			y = (1 - 2.f * pyc / float(m_Height)) * fov;
+//
+//			ColorRGB finalColor{};
+//			ray.direction.x = x;
+//			ray.direction.y = y;
+//			ray.direction.z = 1.0f;
+//			ray.direction.Normalize();
+//			ray.direction = camera.cameraToWorld.TransformVector(ray.direction).Normalized();
+//
+//			//raytrace scene
+//			pScene->GetClosestHit(ray, hitRecord);
+//
+//			//Check what the camera is seeing
+//			if (hitRecord.didHit)
+//			{
+//				//Check lighting on the location spotted by camera
+//				for (int i{}; i < lights.size(); ++i)
+//				{
+//					const Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[i], hitRecord.origin) };
+//					Ray LightRay{ {hitRecord.origin + hitRecord.normal * 0.002f} ,{} };
+//					LightRay.max = (lights[i].origin - hitRecord.origin).Magnitude();
+//					LightRay.min = 0.0001f;
+//					const Vector3 lightDirNrm{ lightDir / LightRay.max };
+//					LightRay.direction = lightDirNrm;
+//					const float cosArea {CalculateObservedArea(lightDir, hitRecord.normal, LightRay.max) };
+//							
+//					
+//					if (cosArea <= 0)
+//					{
+//						if (m_LightingMode != LightingMode::BRDF)
+//							continue;
+//					}
+//
+//
+//					//if shadows enabled ,put shadow
+//					if (m_ShadowEnabled && pScene->DoesHit(LightRay) )
+//					{
+//						finalColor += {};
+//					}
+//					else
+//					{
+//						switch (m_LightingMode)
+//						{
+//						case LightingMode::ObservedArea:
+//							finalColor.r += cosArea;
+//							finalColor.g += cosArea;
+//							finalColor.b += cosArea;
+//							break;
+//
+//						case LightingMode::Radiance:
+//							finalColor += LightUtils::GetRadiance(lights[i], hitRecord.origin);
+//							break;
+//
+//						case LightingMode::BRDF:
+//							finalColor += materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction);
+//							break;
+//
+//						case LightingMode::Combined:
+//							finalColor +=
+//								materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction) *
+//								LightUtils::GetRadiance(lights[i], hitRecord.origin) *
+//								cosArea;
+//							break;
+//						default:
+//							break;
+//						}
+//
+//					}
+//					
+//				}
+//				//hitrecord set false to continue search for hits with smaller t-value (closer objects)
+//				hitRecord.didHit = false;
+//			}
+//			//if no hit on an object in world --> finalcolor = 0
+//			else
+//			{
+//				finalColor += {};
+//			}
+//
+//#pragma region comment
+//			/////////////////////////////////////////////////////////////////////////////////////////
+//			////check for correct raydirection 
+//			//ColorRGB finalColor{ ray.direction.x ,ray.direction.y, ray.direction.z };
+//
+//			////////////////////////////////////////////////////////////////////////////////////////
+//			
+//			////check plane test
+//			//Plane testPlane{ {0.0f,-50.0f, 0.0f }, {.0f, 1.0f, .0f}, 0 };
+//			//if (GeometryUtils::HitTest_Plane(testPlane, ray, hitRecord))
+//			//{
+//			//	const float test_t{ hitRecord.t / 500.f };
+//			//	//finalColor = materials[hitRecord.materialIndex]->Shade();
+//			//	ColorRGB color{ test_t, test_t, test_t };
+//			//	finalColor = color;
+//			//}
+//			//else
+//			//{
+//			//	finalColor = {};
+//			//}
+//
+//			//////////////////////////////////////////////////////////////////////////////////////////
+//			//Update Color in Buffer
+//#pragma endregion 
+//			finalColor.MaxToOne();
+//			
+//			m_pBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBuffer->format,
+//				static_cast<uint8_t>(finalColor.r * 255),
+//				static_cast<uint8_t>(finalColor.g * 255),
+//				static_cast<uint8_t>(finalColor.b * 255));
+//		}
+//	}
+
+
 }
 
+
+void Renderer::RenderPixel(Scene* pScene, uint32_t pixelIndex, float fov, float aspectRatio, const Matrix& cameraToWorld, const Vector3& cameraOrigin)const
+{
+	auto materials{ pScene->GetMaterials() };
+	auto lights{ pScene->GetLights() };
+	const uint32_t
+		px{ pixelIndex % m_Width, },
+		py{ pixelIndex / m_Width };
+	float
+		rx{ px + 0.5f },
+		ry{ py + 0.5f },
+		cx{ (2 * (rx / float(m_Width)) - 1) * aspectRatio * fov },
+		cy{ (1 - 2 * (ry / float(m_Height))) * fov };
+
+	Ray ray{ cameraOrigin , {} };
+	ColorRGB finalColor{};
+	HitRecord hitRecord{};
+	ray.direction.x = cx;
+	ray.direction.y = cy;
+	ray.direction.z = 1.0f;
+	ray.direction.Normalize();
+	ray.direction = cameraToWorld.TransformVector(ray.direction).Normalized();
+
+	//raytrace scene
+	pScene->GetClosestHit(ray, hitRecord);
+
+	//Check what the camera is seeing
+	if (hitRecord.didHit)
+	{
+		//Check lighting on the location spotted by camera
+		for (int i{}; i < lights.size(); ++i)
+		{
+			const Vector3 lightDir{ LightUtils::GetDirectionToLight(lights[i], hitRecord.origin) };
+			Ray LightRay{ {hitRecord.origin + hitRecord.normal * 0.002f} ,{} };
+			LightRay.max = (lights[i].origin - hitRecord.origin).Magnitude();
+			LightRay.min = 0.0001f;
+			const Vector3 lightDirNrm{ lightDir / LightRay.max };
+			LightRay.direction = lightDirNrm;
+			const float cosArea{ CalculateObservedArea(lightDir, hitRecord.normal, LightRay.max) };
+
+
+			if (cosArea <= 0)
+			{
+				if (m_LightingMode != LightingMode::BRDF)
+					continue;
+			}
+
+
+			//if shadows enabled ,put shadow
+			if (m_ShadowEnabled && pScene->DoesHit(LightRay))
+			{
+				finalColor += {};
+			}
+			else
+			{
+				switch (m_LightingMode)
+				{
+				case LightingMode::ObservedArea:
+					finalColor.r += cosArea;
+					finalColor.g += cosArea;
+					finalColor.b += cosArea;
+					break;
+
+				case LightingMode::Radiance:
+					finalColor += LightUtils::GetRadiance(lights[i], hitRecord.origin);
+					break;
+
+				case LightingMode::BRDF:
+					finalColor += materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction);
+					break;
+
+				case LightingMode::Combined:
+					finalColor +=
+						materials[hitRecord.materialIndex]->Shade(hitRecord, lightDirNrm, ray.direction) *
+						LightUtils::GetRadiance(lights[i], hitRecord.origin) *
+						cosArea;
+					break;
+				default:
+					break;
+				}
+
+			}
+
+		}
+		//hitrecord set false to continue search for hits with smaller t-value (closer objects)
+		hitRecord.didHit = false;
+	}
+	//if no hit on an object in world --> finalcolor = 0
+	else
+	{
+		finalColor += {};
+	}
+	finalColor.MaxToOne();
+
+	m_pBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBuffer->format,
+		static_cast<uint8_t>(finalColor.r * 255),
+		static_cast<uint8_t>(finalColor.g * 255),
+		static_cast<uint8_t>(finalColor.b * 255));
+}
 
 bool Renderer::SaveBufferToImage() const
 {

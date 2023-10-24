@@ -9,6 +9,7 @@ namespace dae
 {
 	class Scene;
 	struct Vector3;
+	struct Matrix;
 
 	class Renderer final
 	{
@@ -24,8 +25,11 @@ namespace dae
 		void Input();
 
 		void Render(Scene* pScene) const;
-		bool SaveBufferToImage() const;
+		void RenderPixel(Scene* pScene, uint32_t pixelIndex, float fov, float aspectRatio, const Matrix& cameraToWorld, const Vector3& cameraOrigin)const;
 
+
+		bool SaveBufferToImage() const;
+		
 		void CyclelightingMode();
 		void ToggleShadows() { m_ShadowEnabled = !m_ShadowEnabled; }
 

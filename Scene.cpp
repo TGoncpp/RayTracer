@@ -460,7 +460,7 @@ namespace dae {
 	{
 		Scene::Update(pTimer);
 
-		const auto yawnAngle = (cos(pTimer->GetTotal()) + 1.f) / 2.f + dae::PI_2;
+		const auto yawnAngle = (cos(pTimer->GetTotal()) + 1.f) / 2.f + dae::PI_DIV_2;
 		for (const auto mesh : m_Meshes)
 		{
 			mesh->RotateY(yawnAngle);
